@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker Web UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Xterm.js CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="dockerStyles.css" />
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <!-- Navigation -->
+        <div class="flex justify-center mb-4 space-x-4 flex-shrink-0">
+            <a href="/container" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-md shadow-sm transition duration-200 ease-in-out">
+                Docker Management
+            </a>
+            <!-- Removed Kubernetes Management Link -->
+            <!-- <a href="/kubernetes" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-1 px-2 rounded-md shadow-sm transition duration-200 ease-in-out">
+                Kubernetes Management
+            </a> -->
+        </div>
+
+    <div class="bg-white p-2 rounded-lg shadow-xl w-full max-w-8xl flex flex-col flex-grow h-[calc(100vh-6rem)]">
+        
+        <!-- Main content area, contains the two grid rows -->
+        <div class="flex-grow flex flex-col gap-2"> <!-- Reduced gap to 4 -->
+            <!-- Top Row of Sections -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
+                <!-- Local Docker Images Section -->
+                <div class="flex flex-col"> <!-- New wrapper for h2 + content box -->
+                    <h2 class="text-1.5xl font-semibold text-purple-700 mb-2 flex-shrink-0 px-4">Local Docker Images</h2>
+                    <div class="p-3 bg-purple-50 rounded-lg border border-purple-200 flex flex-col flex-grow h-[calc(50vh-7rem)]">
+                        <!-- The overflow-y-auto class enables vertical scrolling if content exceeds this div's height -->
+                        <!-- Added min-h-0 to ensure flex item can shrink and allow overflow-y-auto to work -->
+                        <div id="localImagesList" class="overflow-y-auto flex-grow min-h-0"> <!-- Removed mb-4 -->
+                            <p class="text-gray-600 text-center py-4" id="loadingImages">Loading local images...</p>
+                        </div>
+                    </div>
+                    <!-- Buttons moved outside this section's content box, but still within the section's main wrapper -->
+                    <div class="flex space-x-2 justify-center mt-2 flex-shrink-0 flex-wrap">
+                        <button onclick="showPullImageModal()"
+                                class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-0.5 px-2 rounded-md shadow-sm transition duration-200 ease-in-out text-xs">
+                            Add Image (Pull)
+                        </button>
+                        <button onclick="removeSelectedImagesFromList()"
+                                class="bg-red-500 hover:bg-red-600 text-white font-bold py-0.5 px-2 rounded-md shadow-sm transition duration-200 ease-in-out text-xs">
+                            Remove Image(s)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Launch New Container Section -->
+                <div class="flex flex-col"> <!-- New wrapper for h2 + content box -->
+                    <h2 class="text-1.5xl font-semibold text-blue-700 mb-2 flex-shrink-0 px-4">Launch New Container</h2>
+                    <div class="p-3 bg-blue-50 rounded-lg border border-blue-200 flex flex-col flex-grow h-[calc(50vh-7rem)]">
+                        <form id="launchContainerForm" class="space-y-2 overflow-y-auto flex-grow">
+                            <div class="flex flex-col">
+                                <label for="cname" class="text-gray-700 font-medium text-[12px] mb-1">Container Name Base:</label>
+                                <input type="text" id="cname" name="cname" placeholder="e.g., my-nginx-app" required
+                                       class="p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200 ease-in-out text-[12px] w-full"/>
+                            </div>
+                            <div class="flex flex-col">
+                                <label for="cimage" class="text-gray-700 font-medium text-[12px] mb-1">Container Image:</label>
+                                <select id="cimage" name="cimage"
+                                        class="p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200 ease-in-out text-[12px] w-full">
+                                    <!-- Options will be dynamically loaded here -->
+                                </select>
+                            </div>
+                            <!-- customImageDiv is now permanently hidden as 'other' option is removed -->
+                            <div id="customImageDiv" class="flex flex-col hidden">
+                                <label for="customImage" class="text-gray-700 font-medium text-[12px] mb-1">Custom Image Name:</label>
+                                <input type="text" id="customImage" name="customImage" placeholder="e.g., my-custom-image:latest"
+                                       class="p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200 ease-in-out text-[12px] w-full"/>
+                            </div>
+                            <div class="flex flex-col">
+                                <label for="numContainers" class="text-gray-700 font-medium text-[12px] mb-1">Number of Containers:</label>
+                                <input type="number" id="numContainers" name="numContainers" value="1" min="1" required
+                                       class="p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200 ease-in-out text-[12px] w-full"/>
+                            </div>
+
+                            <!-- New section for Port Mappings -->
+                            <div class="flex flex-col mt-4">
+                                <h4 class="text-gray-700 font-medium text-[12px] mb-2">Port Mappings (Host:Container)</h4>
+                                <div id="portMappingInputsContainer" class="space-y-2">
+                                    <!-- Port mapping input fields will be added here -->
+                                </div>
+                                <button type="button" onclick="addPortMappingInput()"
+                                        class="mt-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-1 px-3 rounded-md shadow-sm transition duration-200 ease-in-out text-xs self-start">
+                                    Add Port Mapping
+                                </button>
+                            </div>
+
+                            <!-- New section for Environment Variables -->
+                            <div class="flex flex-col mt-4">
+                                <h4 class="text-gray-700 font-medium text-[12px] mb-2">Environment Variables (KEY=VALUE)</h4>
+                                <div id="envVarInputsContainer" class="space-y-2">
+                                    <!-- Environment variable input fields will be added here -->
+                                </div>
+                                <button type="button" onclick="addEnvVarInput()"
+                                        class="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded-md shadow-sm transition duration-200 ease-in-out text-xs self-start">
+                                    Add Environment Variable
+                                </button>
+                            </div>
+                        </form>
+                        <div id="launchOutput" class="mt-2 p-2 bg-gray-100 rounded-md text-gray-800 text-sm hidden flex-shrink-0"></div>
+                    </div>
+                    <button type="submit" form="launchContainerForm"
+                                class="w-2/2 mx-auto mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-0.5 px-2 rounded-md shadow-xs text-xs">
+                            Launch Container(s)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bottom Row of Sections -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
+                <!-- Running Containers Section -->
+                <div class="flex flex-col"> <!-- New wrapper for h2 + content box -->
+                    <h2 class="text-1.5xl font-semibold text-green-700 mb-2 flex-shrink-0 px-4">Running Containers</h2>
+                    <!-- Added h-[calc(50vh-7rem)] for consistent height and scrolling behavior -->
+                    <div class="p-3 bg-green-50 rounded-lg border border-green-200 flex flex-col flex-grow h-[calc(50vh-7rem)]">
+                        <!-- The overflow-y-auto class enables vertical scrolling if content exceeds this div's height -->
+                        <!-- Added min-h-0 to ensure flex item can shrink and allow overflow-y-auto to work -->
+                        <div id="runningContainerList" class="overflow-y-auto flex-grow min-h-0"> <!-- Removed mb-4 -->
+                            <p class="text-gray-600 text-center py-4" id="loadingRunning">Loading running containers...</p>
+                        </div>
+                        </div>
+                    <!-- Buttons moved outside this section's content box, but still within the section's main wrapper -->
+                    <div class="flex space-x-2 justify-center mt-2 flex-shrink-0 flex-wrap">
+                        <button onclick="stopSelectedContainers()"
+                                class="bg-yellow-400 hover:bg-yellow-600 text-white font-bold py-0.5 px-2 rounded-md shadow-sm transition duration-200 ease-in-out text-xs">
+                            Stop Container(s)
+                        </button>
+                        <button onclick="removeSelectedContainers('running')"
+                                class="bg-red-500 hover:bg-red-600 text-white font-bold py-0.5 px-2 rounded-md shadow-sm transition duration-200 ease-in-out text-xs">
+                            Remove Running Container(s)
+                        </button>
+                        <!-- New button for CLI access -->
+                        <button id="openCliButton" onclick="openContainerCli()" disabled
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-0.5 px-2 rounded-md shadow-sm transition duration-200 ease-in-out text-xs disabled:opacity-50 disabled:cursor-not-allowed">
+                            Open CLI
+                        </button>
+                        <!-- New button for Log Streaming -->
+                        <button id="viewLogsButton" onclick="openContainerLogs()" disabled
+                                class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-0.5 px-2 rounded-md shadow-sm transition duration-200 ease-in-out text-xs disabled:opacity-50 disabled:cursor-not-allowed">
+                            View Logs
+                        </button>
+                        <!-- New button for Renaming -->
+                        <button id="renameRunningButton" onclick="showRenameContainerModal('running')" disabled
+                                class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-0.5 px-2 rounded-md shadow-sm transition duration-200 ease-in-out text-xs disabled:opacity-50 disabled:cursor-not-allowed">
+                            Rename
+                        </button>
+                        <!-- New button for Stats -->
+                        <button id="viewStatsButton" onclick="showContainerStatsModal()" disabled
+                                class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-0.5 px-2 rounded-md shadow-sm transition duration-200 ease-in-out text-xs disabled:opacity-50 disabled:cursor-not-allowed">
+                            View Stats
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stopped Containers Section -->
+                <div class="flex flex-col"> <!-- New wrapper for h2 + content box -->
+                    <h2 class="text-1.5xl font-semibold text-red-700 mb-2 flex-shrink-0 px-4">Stopped Containers</h2>
+                    <!-- Added h-[calc(50vh-7rem)] for consistent height and scrolling behavior -->
+                    <div class="p-3 bg-red-50 rounded-lg border border-red-200 flex flex-col flex-grow h-[calc(50vh-7rem)]">
+                        <!-- The overflow-y-auto class enables vertical scrolling if content exceeds this div's height -->
+                        <!-- Added min-h-0 to ensure flex item can shrink and allow overflow-y-auto to work -->
+                        <div id="stoppedContainerList" class="overflow-y-auto flex-grow min-h-0"> <!-- Removed mb-4 -->
+                            <p class="text-gray-600 text-center py-4" id="loadingStopped">Loading stopped containers...</p>
+                        </div>
+                    </div>
+                    <!-- Buttons moved outside this section's content box, but still within the section's main wrapper -->
+                    <div class="flex space-x-2 justify-center mt-2 flex-shrink-0 flex-wrap">
+                        <button onclick="startSelectedContainers()"
+                                class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-0.5 px-2 rounded-md shadow-sm transition duration-200 ease-in-out text-xs">
+                            Start Container(s)
+                        </button>
+                        <button onclick="removeSelectedContainers('stopped')"
+                                class="bg-red-500 hover:bg-red-600 text-white font-bold py-0.5 px-2 rounded-md shadow-sm transition duration-200 ease-in-out text-xs">
+                            Remove Stopped Container(s)
+                        </button>
+                        <!-- New button for Renaming -->
+                        <button id="renameStoppedButton" onclick="showRenameContainerModal('stopped')" disabled
+                                class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-0.5 px-2 rounded-md shadow-sm transition duration-200 ease-in-out text-xs disabled:opacity-50 disabled:cursor-not-allowed">
+                            Rename
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container for sliding messages -->
+    <div id="messageContainer"></div>
+
+    <!-- Pull Image Modal -->
+    <div id="pullImageModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-semibold text-gray-800 mb-4">Pull Docker Image</h3>
+            <form id="pullImageForm" class="space-y-4">
+                <div class="flex flex-col">
+                    <label for="pullImageName" class="text-gray-700 font-medium mb-1">Image Name:</label>
+                    <input type="text" id="pullImageName" name="pullImageName" placeholder="e.g., nginx" required
+                           class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200 ease-in-out"/>
+                </div>
+                <div class="flex flex-col">
+                    <label for="pullImageVersion" class="text-gray-700 font-medium mb-1">Version (Optional):</label>
+                    <input type="text" id="pullImageVersion" name="pullImageVersion" placeholder="e.g., latest or 1.21"
+                           class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200 ease-in-out"/>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="hidePullImageModal()"
+                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-sm transition duration-200 ease-in-out">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md shadow-sm transition duration-200 ease-in-out">
+                        Pull Image
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-semibold text-gray-800 mb-4">Confirm Action</h3>
+            <p id="confirmMessage" class="text-gray-700 mb-6"></p>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" id="cancelConfirmBtn"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-sm transition duration-200 ease-in-out">
+                    No
+                </button>
+                <button type="button" id="confirmActionBtn"
+                        class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-sm transition duration-200 ease-in-out">
+                    Yes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Terminal Modal -->
+    <div id="terminalModal" class="modal-overlay hidden">
+        <div class="modal-content w-11/12 max-w-4xl h-3/4 flex flex-col">
+            <h3 id="terminalTitle" class="text-2xl font-semibold text-gray-800 mb-4">Container CLI: <span id="currentContainerName" class="font-normal text-blue-700"></span></h3>
+            <div id="terminal" class="flex-grow bg-black text-white rounded-md overflow-hidden"></div>
+            <div class="flex justify-end space-x-3 mt-4">
+                <button type="button" onclick="closeTerminalModal()"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-sm transition duration-200 ease-in-out">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container Details Modal -->
+    <div id="containerDetailsModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-semibold text-gray-800 mb-4">Container Details: <span id="detailsContainerName" class="font-normal text-blue-700"></span></h3>
+            <div id="detailsContent" class="text-gray-700 text-sm overflow-y-auto max-h-[60vh]">
+                <p class="text-gray-600 text-center py-4" id="loadingDetails">Loading container details...</p>
+                <!-- Details will be populated here -->
+            </div>
+            <div class="flex justify-end space-x-3 mt-4">
+                <button type="button" onclick="closeContainerDetailsModal()"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-sm transition duration-200 ease-in-out">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Modal -->
+    <div id="logModal" class="modal-overlay hidden">
+        <div class="modal-content w-11/12 max-w-4xl h-3/4 flex flex-col">
+            <h3 id="logTitle" class="text-2xl font-semibold text-gray-800 mb-4">Container Logs: <span id="currentLogContainerName" class="font-normal text-blue-700"></span></h3>
+            <div id="logOutput" class="flex-grow bg-black text-white rounded-md overflow-hidden"></div>
+            <div class="flex justify-end space-x-3 mt-4">
+                <button type="button" onclick="closeContainerLogsModal()"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-sm transition duration-200 ease-in-out">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename Container Modal -->
+    <div id="renameContainerModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-semibold text-gray-800 mb-4">Rename Container</h3>
+            <form id="renameContainerForm" class="space-y-4">
+                <div class="flex flex-col">
+                    <label for="oldContainerName" class="text-gray-700 font-medium mb-1">Current Name:</label>
+                    <input type="text" id="oldContainerName" name="oldContainerName" readonly
+                           class="p-3 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed text-gray-700"/>
+                </div>
+                <div class="flex flex-col">
+                    <label for="newContainerName" class="text-gray-700 font-medium mb-1">New Name:</label>
+                    <input type="text" id="newContainerName" name="newContainerName" placeholder="Enter new container name" required
+                           class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200 ease-in-out"/>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeRenameContainerModal()"
+                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-sm transition duration-200 ease-in-out">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md shadow-sm transition duration-200 ease-in-out">
+                        Rename
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Container Stats Modal -->
+    <div id="containerStatsModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-semibold text-gray-800 mb-4">Container Stats</h3>
+            <div id="containerStatsContent" class="text-gray-700 text-sm overflow-y-auto max-h-[60vh]">
+                <p class="text-gray-600 text-center py-4" id="loadingStats">Loading container statistics...</p>
+                <!-- Stats table will be populated here -->
+            </div>
+            <div class="flex justify-end space-x-3 mt-4">
+                <button type="button" onclick="closeContainerStatsModal()"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-sm transition duration-200 ease-in-out">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Xterm.js and Addon scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="dockerScript.js"></script>
+</body>
+</html>

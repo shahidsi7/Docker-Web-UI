@@ -1,0 +1,215 @@
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f0f2f5;
+            /* Prevent body from scrolling, the main container will handle it */
+            overflow: hidden;
+            /* Ensure body fills viewport and centers content */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column; /* Align children vertically */
+            align-items: center; /* Center horizontally */
+            padding: 1rem; /* Add some padding around the main content */
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        /* Basic modal overlay styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem; /* rounded-lg */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
+            width: 90%;
+            max-width: 400px;
+        }
+        /* Specific styles for the terminal modal to make it larger */
+        #terminalModal .modal-content,
+        #logModal .modal-content { /* Apply to both CLI and Log modals */
+            max-width: 90%; /* Make it wider */
+            height: 80%; /* Make it taller */
+            display: flex;
+            flex-direction: column;
+            padding: 10px; /* Changed from 2rem to 10px for tighter spacing */
+        }
+        #terminal,
+        #logOutput { /* Apply to both CLI and Log output areas */
+            flex-grow: 1; /* Allow terminal to take up available space */
+            background-color: #000;
+            color: #fff;
+            font-family: 'Cascadia Code', 'Consolas', 'Monaco', 'Lucida Console', monospace;
+            font-size: 14px;
+            overflow: hidden; /* Prevent xterm.js internal scrollbars from showing */
+            border-radius: 0.5rem;
+        }
+
+        /* Styles for the sliding message box */
+        #messageContainer {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-width: 350px;
+        }
+
+        .message-box {
+            position: relative;
+            padding: 1rem 2.5rem 1rem 1rem; /* Adjust padding for close button */
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: translateX(100%);
+            animation: slideIn 0.5s forwards;
+            word-wrap: break-word; /* Ensure text wraps */
+        }
+
+        .message-box.error {
+            background-color: #fee2e2; /* red-100 */
+            color: #ef4444; /* red-500 */
+            border: 1px solid #fca5a5; /* red-300 */
+        }
+
+        .message-box.success {
+            background-color: #d1fae5; /* green-100 */
+            color: #10b981; /* green-500 */
+            border: 1px solid #a7f3d0; /* green-300 */
+        }
+
+        .message-box .close-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            color: inherit; /* Inherit color from parent message-box */
+            line-height: 1;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .message-box .close-btn:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Styles for container details modal */
+        #containerDetailsModal .modal-content {
+            max-width: 800px; /* Increased width */
+            max-height: 90%; /* Increased height */
+            overflow-y: auto;
+        }
+        .detail-item {
+            margin-bottom: 0.75rem; /* Tailwind: mb-3 */
+        }
+        .detail-label {
+            font-weight: 600; /* Tailwind: font-semibold */
+            color: #4a5568; /* Tailwind: text-gray-700 */
+            display: block; /* Make label take full width */
+            margin-bottom: 0.25rem; /* Tailwind: mb-1 */
+        }
+        .detail-value {
+            color: #2d3748; /* Tailwind: text-gray-900 */
+            background-color: #edf2f7; /* Tailwind: bg-gray-100 */
+            padding: 0.5rem 0.75rem; /* Tailwind: p-2 px-3 */
+            border-radius: 0.375rem; /* Tailwind: rounded-md */
+            font-family: monospace; /* For IDs, hashes etc. */
+            white-space: pre-wrap; /* Ensure text wraps */
+            word-break: break-all; /* Break long words */
+        }
+        .detail-value.normal-text {
+            font-family: "Inter", sans-serif;
+            background-color: transparent;
+            padding: 0;
+        }
+
+        /* Styles for Environment Variable Modal */
+        #envVarModal .modal-content {
+            max-width: 700px; /* Increased width */
+            max-height: 90%; /* Increased height */
+            overflow-y: auto;
+        }
+        .env-var-row, .port-mapping-row { /* Combined styles */
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            align-items: center;
+        }
+        .env-var-row input, .port-mapping-row input { /* Combined styles */
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db; /* gray-300 */
+            border-radius: 0.375rem; /* rounded-md */
+            font-size: 0.875rem; /* text-sm */
+        }
+        .env-var-row button, .port-mapping-row button { /* Combined styles */
+            background-color: #ef4444; /* red-500 */
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .env-var-row button:hover, .port-mapping-row button:hover { /* Combined styles */
+            background-color: #dc2626; /* red-600 */
+        }
+
+        /* Styles for Container Stats Modal */
+        #containerStatsModal .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+        }
+        #containerStatsTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.875rem; /* text-sm */
+        }
+        #containerStatsTable th, #containerStatsTable td {
+            border: 1px solid #e2e8f0; /* gray-200 */
+            padding: 0.75rem;
+            text-align: left;
+        }
+        #containerStatsTable th {
+            background-color: #f8fafc; /* gray-50 */
+            font-weight: 600; /* font-semibold */
+            color: #4a5568; /* gray-700 */
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        #containerStatsTable tbody tr:nth-child(even) {
+            background-color: #f8fafc; /* gray-50 */
+        }
+        #containerStatsTable tbody tr:hover {
+            background-color: #edf2f7; /* gray-100 */
+        }
