@@ -50,21 +50,15 @@ Before you begin, ensure you have the following installed on your system:
 
 ## Installation & Setup
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <your-repository-url>
-    cd <repository-directory>
-    ```
-
-2.  **Install dependencies:**
+1.  **Install dependencies:**
     Open your terminal in the project root and run:
     ```bash
     npm install
     ```
 
-3.  **Start the server:**
+2.  **Start the server:**
     ```bash
-    node index.js
+    node index.js / nodemon index.js
     ```
     *Note: The `package.json` has a start script `nodemon server.js`. If you have `nodemon` installed globally (`npm install -g nodemon`), you can use `npm start` for automatic server restarts on file changes. Make sure to change `server.js` to `index.js` in your `package.json` if you prefer this method.*
 
